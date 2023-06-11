@@ -1,6 +1,6 @@
 -- mahasiswa: nim, nama_mahasiswa, password, no_gedung, no_kamar
 -- admin: id_admin, nama_admin, username, password
--- barang: id_barang, nama_barang, harga_barang, stok
+-- barang: id_barang, nama_barang, harga_barang
 -- transaksi: id_transaksi, nim, total_harga, tanggal_transaksi
 -- detail_transaksi: id_transaksi, id_barang, jumlah
 
@@ -22,8 +22,7 @@ CREATE TABLE admin (
 CREATE TABLE barang (
   id_barang VARCHAR(30) PRIMARY KEY,
   nama_barang VARCHAR(50) NOT NULL,
-  harga_barang INT,
-  stok INT
+  harga_barang INT
 );
 
 CREATE TABLE transaksi (
@@ -47,9 +46,9 @@ CREATE TABLE detail_transaksi (
 -- Tabel mahasiswa
 INSERT INTO mahasiswa (nim, nama_mahasiswa, password, no_gedung, no_kamar)
 VALUES
-  ('1234567890', 'Sahal Fajri', 'password123', 'A1', '101'),
-  ('2345678901', 'Ahmad Suhail', 'password456', 'B2', '202'),
-  ('3456789012', 'Widia Nurainy', 'password789', 'C3', '303');
+  ('123', 'Sahal Fajri', '123', 'A1', '101'),
+  ('456', 'Ahmad Suhail', '456', 'B2', '202'),
+  ('789', 'Widia Nurainy', '789', 'C3', '303');
 
 -- Tabel admin
 INSERT INTO admin (nama_admin, username, password)
@@ -59,8 +58,18 @@ VALUES
   ('Admin 3', 'admin3', 'adminpass3');
 
 -- Tabel barang
-INSERT INTO barang (id_barang, nama_barang, harga_barang, stok)
+INSERT INTO barang (id_barang, nama_barang, harga_barang)
 VALUES
-  ('B001', 'Laptop', 8000000, 5),
-  ('B002', 'Smartphone', 5000000, 10),
-  ('B003', 'Mouse', 50000, 20);
+  ('B001', 'Laptop', 8000000),
+  ('B002', 'Smartphone', 5000000),
+  ('B003', 'Mouse', 50000);
+
+-- Trigger
+
+DELIMITER //
+CREATE TRIGGER `delete_related_rows` BEFORE DELETE ON `barang`
+ FOR EACH ROW BEGIN
+    -- Hapus baris dari tabel detail_transaksi yang terkait dengan barang yang akan dihapus
+    DELETE FROM detail_transaksi WHERE id_barang = OLD.id_barang;
+END//
+DELIMITER ;
