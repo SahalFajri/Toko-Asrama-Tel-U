@@ -220,7 +220,7 @@ class Toko:
         self.total_harga_label.pack(padx=10, pady=10)
 
         self.detail_button = tk.Button(
-            self.histori_frame, text="Lihat Detail")
+            self.histori_frame, text="Lihat Detail", command=self.detail_histori_transaksi)
         self.detail_button.pack(padx=10, pady=10)
 
         # Menampilkan tombol logout
@@ -244,10 +244,6 @@ class Toko:
             self.barang_treeview.heading(column, text=column)
 
     def generate_keranjang(self):
-        self.keranjang_columns = (
-            "ID Barang", "Nama Barang", "Harga", "Jumlah")
-        self.keranjang_treeview.config(columns=self.keranjang_columns)
-
         for column in self.keranjang_columns:
             self.keranjang_treeview.heading(column, text=column)
 
@@ -261,7 +257,7 @@ class Toko:
         for row in self.histori_treeview.get_children():
             self.histori_treeview.delete(row)
 
-        query = "SELECT id_transaksi, total_harga, tanggal_transaksi FROM transaksi WHERE nim = %s"
+        query = "SELECT id_transaksi, total_harga, tanggal_transaksi FROM transaksi WHERE nim = %s ORDER BY tanggal_transaksi DESC"
         val = (nim,)
         self.mycursor.execute(query, val)
         result = self.mycursor.fetchall()
@@ -272,6 +268,102 @@ class Toko:
 
         for column in self.histori_columns:
             self.histori_treeview.heading(column, text=column)
+
+    def detail_histori_transaksi(self):
+        selection = self.histori_treeview.selection()
+        if selection:
+            selected_item = self.histori_treeview.item(selection)
+
+            id_detail = selected_item['values'][0]
+            total_harga = selected_item['values'][1]
+            total_harga = "{:,.0f}".format(total_harga)
+            tanggal_transaksi = selected_item['values'][2]
+
+            window = tk.Toplevel(self.current_frame)
+            window.title("Detail Histori Transaksi")
+            window.resizable(False, False)
+
+            # agar fokus ke window
+            window.grab_set()
+
+            # membuat frame untuk input data barang
+            detail_frame = ttk.LabelFrame(
+                window, text=f"Transaksi ID: {id_detail}")
+            detail_frame.pack(padx=30, pady=20)
+
+            # mengambil data dari database
+            self.mycursor.execute(
+                "SELECT barang.nama_barang, barang.harga_barang, detail_transaksi.jumlah FROM detail_transaksi JOIN barang ON detail_transaksi.id_barang = barang.id_barang WHERE id_transaksi=%s", (id_detail,))
+            result = self.mycursor.fetchall()
+
+            label_tanggal_transaksi = tk.Label(
+                detail_frame, text=f'Tanggal {tanggal_transaksi}')
+            label_tanggal_transaksi.grid(row=0, columnspan=4, pady=(10, 0))
+
+            # garis pembatas
+            separator = ttk.Separator(detail_frame, orient='horizontal')
+            separator.grid(row=1, columnspan=4,
+                           sticky="ew", padx=10, pady=10)
+
+            # kolom-kolom
+            kolom_barang = tk.Label(
+                detail_frame, text='Barang')
+            kolom_barang.grid(row=2, column=0)
+
+            kolom_harga = tk.Label(
+                detail_frame, text='Harga')
+            kolom_harga.grid(row=2, column=1)
+
+            kolom_jumlah = tk.Label(
+                detail_frame, text='Jumlah')
+            kolom_jumlah.grid(row=2, column=2)
+
+            kolom_jumlah_harga = tk.Label(
+                detail_frame, text='Jumlah Harga')
+            kolom_jumlah_harga.grid(row=2, column=3)
+
+            # Membuat label baru untuk setiap baris data
+            for i, data in enumerate(result):
+                jumlah_harga = data[1] * data[2]
+                jumlah_harga = "{:,.0f}".format(jumlah_harga)
+
+                harga = "{:,.0f}".format(data[1])
+                jumlah = "{:,.0f}".format(data[2])
+
+                label_barang = tk.Label(detail_frame, text=data[0])
+                label_harga = tk.Label(detail_frame, text=harga)
+                label_jumlah = tk.Label(detail_frame, text=jumlah)
+                label_jumlah_harga = tk.Label(detail_frame, text=jumlah_harga)
+
+                label_barang.grid(row=i+3, column=0)
+                label_harga.grid(row=i+3, column=1)
+                label_jumlah.grid(row=i+3, column=2)
+                label_jumlah_harga.grid(row=i+3, column=3)
+
+            # garis pembatas
+            separator = ttk.Separator(detail_frame, orient='horizontal')
+            separator.grid(row=i+4, columnspan=4,
+                           sticky="ew", padx=10, pady=10)
+
+            label_total_harga = tk.Label(
+                detail_frame, text='Total Harga:')
+            label_total_harga.grid(row=i+5, column=0, pady=(0, 20))
+
+            label_total_harga = tk.Label(
+                detail_frame, text=f'Rp {total_harga}')
+            label_total_harga.grid(row=i+5, column=3, pady=(0, 20))
+
+            # mengatur posisi jendela dialog di tengah-tengah layar
+            window.update_idletasks()
+            width = window.winfo_width()
+            height = window.winfo_height()
+            x = (window.winfo_screenwidth() // 2) - (width // 2)
+            y = (window.winfo_screenheight() // 2) - (height // 2)
+            window.geometry(f"{width}x{height}+{x}+{y}")
+
+        else:
+            messagebox.showwarning(
+                "Peringatan", "Pilih transaksi terlebih dahulu.")
 
     def tambah_ke_keranjang(self):
         selection = self.barang_treeview.selection()
@@ -330,7 +422,7 @@ class Toko:
                 self.mycursor.execute(query, val)
                 self.mydb.commit()
 
-            total_harga = "{:,.0f}".format(total_harga).replace(",", ".")
+            total_harga = "{:,.0f}".format(total_harga)
             messagebox.showinfo(
                 "Checkout", f"Total harga: Rp {total_harga}, Terima kasih sudah berbelanja")
             self.keranjang.clear()
@@ -349,7 +441,7 @@ class Toko:
     def update_total_harga(self):
         total_harga = sum(
             item["barang"].harga_barang * item["jumlah"] for item in self.keranjang)
-        total_harga = "{:,.0f}".format(total_harga).replace(",", ".")
+        total_harga = "{:,.0f}".format(total_harga)
         self.total_harga_label.config(text=f"Total Harga: Rp {total_harga}")
 
     # Bagian Admin
@@ -395,6 +487,7 @@ class Toko:
         )
         delete_button.pack(fill=tk.X, padx=5, pady=5)
 
+        # Memberikan garis pembatas
         separator = ttk.Separator(button_frame, orient='horizontal')
         separator.pack(fill='x', padx=10, pady=10)
 
@@ -456,6 +549,7 @@ class Toko:
         window = tk.Toplevel(self.current_frame)
         window.title(f"{tipe} Data Barang")
 
+        # agar fokus ke window
         window.grab_set()
 
         # membuat frame untuk input data barang
