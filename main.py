@@ -3,6 +3,7 @@ from tkinter import messagebox
 from tkinter import ttk
 from datetime import date
 import mysql.connector
+import matplotlib.pyplot as plt
 
 
 class Barang:
@@ -491,6 +492,15 @@ class Toko:
         separator = ttk.Separator(button_frame, orient='horizontal')
         separator.pack(fill='x', padx=10, pady=10)
 
+        # Menampilkan tombol Data Penjualan
+        penjualan_button = ttk.Button(
+            button_frame, text="Data Penjualan", command=self.data_penjualan)
+        penjualan_button.pack(fill=tk.X, padx=5, pady=5)
+
+        # Memberikan garis pembatas
+        separator = ttk.Separator(button_frame, orient='horizontal')
+        separator.pack(fill='x', padx=10, pady=10)
+
         # Menampilkan tombol logout
         logout_button = ttk.Button(
             button_frame, text="Logout", command=self.logout)
@@ -514,7 +524,38 @@ class Toko:
 
         self.show_data()
 
+    def data_penjualan(self):
+        labels_nama_barang = []
+        barang_terjual = []
+
+        query = "SELECT barang.nama_barang, SUM(detail_transaksi.jumlah) FROM barang JOIN detail_transaksi ON barang.id_barang = detail_transaksi.id_barang GROUP BY barang.id_barang"
+        self.mycursor.execute(query)
+        data = self.mycursor.fetchall()
+        for row in data:
+            labels_nama_barang.append(row[0])
+            barang_terjual.append(row[1])
+
+        plt.figure(figsize=(6, 6))
+
+        lebar_bar = 0.5  # lebar bar
+
+        # membuat bar plot, memberi label
+        plt.bar(labels_nama_barang, barang_terjual,
+                width=lebar_bar, label="Barang")
+
+        for i in range(len(labels_nama_barang)):
+            plt.text(
+                labels_nama_barang[i], barang_terjual[i], barang_terjual[i], ha='center', va='bottom')
+
+        plt.ylabel("Jumlah Barang Terjual")  # memberi label pada sumbu y
+        plt.xlabel('Nama Barang')
+        plt.title("Jumlah Masing-masing Barang Yang Terjual")
+
+        plt.legend()
+        plt.show()
+
     # Menampilkan data ke table
+
     def show_data(self):
         # Mengkosongkan table
         records = self.admin_treeview.get_children()
